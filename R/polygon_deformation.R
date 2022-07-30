@@ -242,22 +242,68 @@ evolve_multipolygon <- function(polygon,
 #'     * "x": x coordinate of the polygon's vertices
 #'     * "y": y coordinate of the polygon's vertices
 #' @param show_vertices TRUE or FALSE, show vertices or not?
+#' @param v_col Character string indicating the colour of the vertices
+#' @param e_col Character string indicating the colour of the edges
+#' @param bg_col Character string indicating the colour of the plot background
+#' @param v_size Numeric value indicating the size of the vertices
 #' @param ... Other arguments passed on to ggplot2::ggplot()
 #'
 
-show_polygon <- function(polygon, show_vertices = TRUE, ...) {
+show_polygon <- function(polygon,
+                         show_vertices = TRUE,
+                         v_col = "white",
+                         e_col = "white",
+                         bg_col = "grey10",
+                         v_size = 2,
+                         ...) {
 
   p <- ggplot2::ggplot(data = polygon,
                   mapping = ggplot2::aes(x = x,
                                          y = y)) +
-    ggplot2::geom_polygon(colour = "white",
+    ggplot2::geom_polygon(colour = e_col,
                           fill = NA,
                           ...) +
-    {if(show_vertices)ggplot2::geom_point(colour = "white",
-                                          size = 2) } +
+    {if(show_vertices) ggplot2::geom_point(colour = v_col,
+                                           size = v_size) } +
     ggplot2::coord_equal() +
     ggplot2::theme_void() +
-    ggplot2::theme(plot.background = ggplot2::element_rect(fill = "grey10", colour = NA))
+    ggplot2::theme(plot.background = ggplot2::element_rect(fill = bg_col, colour = NA))
+
+  return(p)
+
+}
+
+
+#' Plot multipolygon
+#'
+#' Display the multipolygon
+#'
+#' @param polygon A data frame or tibble with at least two variables:
+#'     * "x": x coordinate of the polygon's vertices
+#'     * "y": y coordinate of the polygon's vertices
+#'     * "id": unique identifier of each polygon, used as a grouping variable in ggplot2::ggplot()
+#' @param fill Character string indicating the colour of the polygons
+#' @param alpha Numeric value between [0,1] indicating the transparency of the polygons
+#' @param bg_col Character string indicating the colour of the plot background
+#' @param ... Other arguments passed on to ggplot2::ggplot()
+#'
+
+show_multipolygon <- function(polygon,
+                              fill = "white",
+                              alpha = 0.1,
+                              bg_col = "grey7",
+                              ...) {
+
+  p <-  ggplot2::ggplot(data = polygon,
+                        mapping = ggplot2::aes(x = x, y = y, group = id)) +
+    ggplot2::geom_polygon(colour = NA,
+                          alpha = 0.1,
+                          fill = "#059dc0",
+                          ...) +
+    ggplot2::coord_equal() +
+    ggplot2::theme_void() +
+    ggplot2::theme(plot.background = ggplot2::element_rect(fill = "grey7",
+                                                           colour = NA))
 
   return(p)
 
