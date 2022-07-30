@@ -297,12 +297,12 @@ show_multipolygon <- function(polygon,
   p <-  ggplot2::ggplot(data = polygon,
                         mapping = ggplot2::aes(x = x, y = y, group = id)) +
     ggplot2::geom_polygon(colour = NA,
-                          alpha = 0.1,
-                          fill = "#059dc0",
+                          alpha = alpha,
+                          fill = fill,
                           ...) +
     ggplot2::coord_equal() +
     ggplot2::theme_void() +
-    ggplot2::theme(plot.background = ggplot2::element_rect(fill = "grey7",
+    ggplot2::theme(plot.background = ggplot2::element_rect(fill = bg_col,
                                                            colour = NA))
 
   return(p)
