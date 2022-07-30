@@ -6,4 +6,4 @@ art
 
 *day 0*
 
-![](img/2022-07-29/pent1b.png)
+<img src="img/2022-07-29/pent1b.png" width = "200" />
