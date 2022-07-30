@@ -13,4 +13,6 @@ art
 
 ![](img/2022-07-29/pent1b.png)
 
+![](img/2022-07-29/hex1b.png)
+
 </span>
