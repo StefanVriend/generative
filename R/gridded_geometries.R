@@ -92,7 +92,7 @@ create_geometry_grid <- function(geometries,
 #'     * "row": the row in which the geometry is positioned.
 #'     * "col" the column in which the geometry is positioned.
 #' @param h_shapes Character string of geometry type (shape) to highlight.
-#' @param h_jitter TRUE/FALSE. Jitter highlighted geometries?
+#' @param h_rotate TRUE/FALSE. Rotate highlighted geometries?
 #' @param g_col Character string indicating the colour(s) of the geometries. If multiple colours are provided, the colours are randomly assigned to the geometries.
 #' @param bg_col Character string indicating the colour of the plot background.
 #' @param h_col Character string indicating the colour of the highlighted geometries.
@@ -101,7 +101,7 @@ create_geometry_grid <- function(geometries,
 
 plot_grid <- function(geometries,
                       h_shapes = NULL,
-                      h_jitter = FALSE,
+                      h_rotate = FALSE,
                       g_col,
                       bg_col,
                       h_col,
@@ -120,13 +120,23 @@ plot_grid <- function(geometries,
     highlighted_shapes <- geometries %>%
       dplyr::filter(name %in% {{h_shapes}})
 
-    # Jitter highlighted shapes
-    if(h_jitter) {
+    # Rotate highlighted shapes
+    if(h_rotate) {
 
       highlighted_shapes <- highlighted_shapes %>%
-        #dplyr::group_by(.data$id) %>%
-        dplyr::mutate(x = x + runif(1, -0.25, 0.25),
-                    y = y + runif(1, -0.25, 0.25))
+        dplyr::group_by(.data$id) %>%
+        # dplyr::mutate(dplyr::across(.cols = c("x", "y"),
+        #                             .fns = ~{
+        #
+        #                               dplyr::case_when(.x == min(.x) ~ .x + 0.2,
+        #                                                .x == max(.x) ~ .x - (.data$s * 0.1))
+        #
+        #                             })) %>%
+        dplyr::mutate(rads = (-runif(1, -20, 20))*pi/180, # rotation in radians
+                      x_or = (max(.data$x) + min(.data$x)) / 2, # original centre x
+                      y_or = (max(.data$y) + min(.data$y)) / 2, # original centre y
+                      x = ((.data$x - .data$x_or) * cos(.data$rads)) - ((.data$y - .data$y_or) * sin(.data$rads)) + .data$x_or,
+                      y = ((.data$y - .data$y_or) * cos(.data$rads)) + ((.data$x - .data$x_or) * sin(.data$rads)) + .data$y_or)
 
     }
 
@@ -141,13 +151,12 @@ plot_grid <- function(geometries,
                           mapping = ggplot2::aes(fill = colour_id),
                           show.legend = FALSE,
                           ...) +
-    {if(!is.null(h_shapes)) ggplot2::geom_polygon(mapping = ggplot2::aes(x = x,
+    {if(!is.null(h_shapes)) ggplot2::geom_path(mapping = ggplot2::aes(x = x,
                                                                          y = y,
                                                                          group = id),
                                                   data = highlighted_shapes,
                                                   colour = h_col,
-                                                  fill = NA,
-                                                  alpha = 0.5,
+                                                  #alpha = 0.5,
                                                   size = 1) } +
     ggplot2::scale_fill_manual(values = g_col) +
     ggplot2::coord_equal() +
