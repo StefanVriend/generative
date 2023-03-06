@@ -63,9 +63,16 @@ create_geometry_grid <- function(geometries,
 
                                       })
 
+  # Store names of shapes
+  shape_names <- tibble::tibble(
+    id = as.character(1:length(sampled_geometries)),
+    name = names(geometries[sampled_geometries])
+  )
+
   # Convert geometry coordinates to fit with their right grid position
-  gridded_geometries <- dplyr::bind_rows(geometries[sampled_geometries], .id = "id") %>%
+  gridded_geometries <- dplyr::bind_rows(unname(geometries)[sampled_geometries], .id = "id") %>%
     dplyr::left_join(row_col_positions, by = "id") %>%
+    dplyr::left_join(shape_names, by = "id") %>%
     dplyr::mutate(x = .data$x + .data$col - 1,
                   y = .data$y - .data$row - 1)
 
@@ -84,14 +91,20 @@ create_geometry_grid <- function(geometries,
 #'     * "id": the id of the geometry.
 #'     * "row": the row in which the geometry is positioned.
 #'     * "col" the column in which the geometry is positioned.
+#' @param h_shapes Character string of geometry type (shape) to highlight.
+#' @param h_jitter TRUE/FALSE. Jitter highlighted geometries?
 #' @param g_col Character string indicating the colour(s) of the geometries. If multiple colours are provided, the colours are randomly assigned to the geometries.
 #' @param bg_col Character string indicating the colour of the plot background.
+#' @param h_col Character string indicating the colour of the highlighted geometries.
 #' @param ... Other arguments passed on to ggplot2::ggplot()
 #'
 
 plot_grid <- function(geometries,
+                      h_shapes = NULL,
+                      h_jitter = FALSE,
                       g_col,
                       bg_col,
+                      h_col,
                       ...) {
 
   # Assign colours to geometries
@@ -101,6 +114,25 @@ plot_grid <- function(geometries,
   geometries <- geometries %>%
     dplyr::left_join(colours, by = "id")
 
+  # Selected shapes to highlight [optional]
+  if(!is.null(h_shapes)) {
+
+    highlighted_shapes <- geometries %>%
+      dplyr::filter(name %in% {{h_shapes}})
+
+    # Jitter highlighted shapes
+    if(h_jitter) {
+
+      highlighted_shapes <- highlighted_shapes %>%
+        #dplyr::group_by(.data$id) %>%
+        dplyr::mutate(x = x + runif(1, -0.25, 0.25),
+                    y = y + runif(1, -0.25, 0.25))
+
+    }
+
+  }
+
+  # Plot
   p <- ggplot2::ggplot(data = geometries,
                        mapping = ggplot2::aes(x = x,
                                               y = y,
@@ -109,7 +141,15 @@ plot_grid <- function(geometries,
                           mapping = ggplot2::aes(fill = colour_id),
                           show.legend = FALSE,
                           ...) +
-    ggplot2::scale_fill_manual(values = g_col, ) +
+    {if(!is.null(h_shapes)) ggplot2::geom_polygon(mapping = ggplot2::aes(x = x,
+                                                                         y = y,
+                                                                         group = id),
+                                                  data = highlighted_shapes,
+                                                  colour = h_col,
+                                                  fill = NA,
+                                                  alpha = 0.5,
+                                                  size = 1) } +
+    ggplot2::scale_fill_manual(values = g_col) +
     ggplot2::coord_equal() +
     ggplot2::theme_void() +
     ggplot2::theme(plot.background = ggplot2::element_rect(fill = bg_col,
