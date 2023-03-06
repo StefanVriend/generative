@@ -85,6 +85,9 @@ create_geometry_grid <- function(geometries,
 #' Function to make a grid of semi-circles, full circles, and circular arcs of various size
 #'
 #' @param dimensions Vector of dimensions of the grid in number of geometries per side. For example, `c(4, 4)` will create a 4x4 grid.
+#' @param arc_lengths Numeric vector of possible proportional arc lengths. For example `1/3` will generate 1/3rd of a circle.
+#' @param circle_sizes Numeric vector of possible circle sizes (i.e., radius).
+#' @param complete_arc TRUE/FALSE. Complete arc or not? Complete arcs are more suitable when plotting them as filled polygons, whereas incomplete arcs are more suitable when plotting them as open paths.
 #' @param seed Set seed to random number generator. Default: NULL.
 #'
 #' @return A data frame with circle grid coordinates
@@ -97,6 +100,9 @@ create_geometry_grid <- function(geometries,
 #'
 
 create_circle_grid <- function(dimensions,
+                               arc_lengths = c((1/3), (1/2), (2/3), 1),
+                               circle_sizes = 0.48,
+                               complete_arc = TRUE,
                                seed = NULL) {
 
   # Set seed
@@ -108,6 +114,7 @@ create_circle_grid <- function(dimensions,
 
   # Create circles and circular arcs
   circles <- purrr::map_dfr(.x = 1:(dimensions[1] * dimensions[2]),
+                            #.y = rep(circle_sizes, dimensions[1] * dimensions[2]),
                             .f = ~{
 
                               # Sample start point
@@ -117,40 +124,57 @@ create_circle_grid <- function(dimensions,
                                                     size = 1)
 
                               # Sample arc length
-                              arc_length <- sample(x = c((1/3), (1/2), (2/3), 1),
+                              arc_length <- sample(x = arc_lengths,
                                                    size = 1) * 2 * pi
 
                               # Calculate end point
                               end_point <- start_point + arc_length
 
-                              # Determine 200 coordinates along arc
-                              tibble::tibble(
-                                id = as.character(.x),
-                                rad = seq(start_point, end_point, length.out = 200),
-                                x = 0.5 + 0.48 * cos(rad),
-                                y = 0.5 + 0.48 * sin(rad)
-                              ) %>%
-                                # Add centre point and start point to complete the circular arc
-                                dplyr::add_row(id = as.character(.x),
-                                               rad = NA_real_,
-                                               x = c(0.5, 0.5 + 0.48 * cos(start_point)),
-                                               y = c(0.5, 0.5 + 0.48 * sin(start_point)))
+                              # Set id
+                              id <- as.character(.x)
+
+                              # Determine 200 coordinates along arc for each circle size
+                              purrr::map_dfr(.x = circle_sizes,
+                                             .f = ~{
+
+                                               circ <- tibble::tibble(
+                                                 id = paste(id, .x, sep = "_"),
+                                                 rad = seq(start_point, end_point, length.out = 200),
+                                                 x = 0.5 + .x * cos(rad),
+                                                 y = 0.5 + .x * sin(rad)
+                                               )
+
+                                               if(complete_arc) {
+
+                                                 # Add centre point and start point to complete the circular arc
+                                                 circ <- circ %>%
+                                                   dplyr::add_row(id = paste(id, .x, sep = "_"),
+                                                                  rad = NA_real_,
+                                                                  x = c(0.5, 0.5 + .x * cos(start_point)),
+                                                                  y = c(0.5, 0.5 + .x * sin(start_point)))
+
+                                               }
+
+                                               circ
+
+                                             })
 
                             })
 
   # Determine grid positions
   positions <- matrix(data = 1:(dimensions[1] * dimensions[2]), nrow = dimensions[2], ncol = dimensions[1])
 
-  row_col_positions <- purrr::map_dfr(.x = 1:(dimensions[1] * dimensions[2]),
-                                      .f = ~{
+  row_col_positions <- purrr::map2_dfr(.x = rep(1:(dimensions[1] * dimensions[2]), each = length(circle_sizes)),
+                                       .y = rep(circle_sizes, dimensions[1] * dimensions[2]),
+                                       .f = ~{
 
-                                        tibble::tibble(
-                                          id = as.character(.x),
-                                          row = which(positions == .x, arr.ind = TRUE)[1],
-                                          col = which(positions == .x, arr.ind = TRUE)[2]
-                                        )
+                                         tibble::tibble(
+                                           id = paste(.x, .y, sep = "_"),
+                                           row = which(positions == .x, arr.ind = TRUE)[1],
+                                           col = which(positions == .x, arr.ind = TRUE)[2]
+                                         )
 
-                                      })
+                                       })
 
   # Convert circle coordinates to fit with their right grid position
   gridded_circles <- circles %>%
@@ -173,6 +197,7 @@ create_circle_grid <- function(dimensions,
 #'     * "id": the id of the geometry.
 #'     * "row": the row in which the geometry is positioned.
 #'     * "col" the column in which the geometry is positioned.
+#' @param geom Which geom to plot the geometries with: "polygon" (default) or "path"?
 #' @param h_shapes Character string of geometry type (shape) to highlight.
 #' @param h_rotate TRUE/FALSE. Rotate highlighted geometries?
 #' @param g_col Character string indicating the colour(s) of the geometries. If multiple colours are provided, the colours are randomly assigned to the geometries.
@@ -182,6 +207,7 @@ create_circle_grid <- function(dimensions,
 #'
 
 plot_grid <- function(geometries,
+                      geom = "polygon",
                       h_shapes = NULL,
                       h_rotate = FALSE,
                       g_col,
@@ -229,18 +255,22 @@ plot_grid <- function(geometries,
                        mapping = ggplot2::aes(x = x,
                                               y = y,
                                               group = id)) +
-    ggplot2::geom_polygon(colour = NA,
-                          mapping = ggplot2::aes(fill = colour_id),
-                          show.legend = FALSE,
-                          ...) +
+    {if(geom == "polygon") ggplot2::geom_polygon(mapping = ggplot2::aes(fill = colour_id),
+                                                 show.legend = FALSE,
+                                                 colour = NA,
+                                                 ...) } +
+    {if(geom == "path") ggplot2::geom_path(mapping = ggplot2::aes(colour = colour_id),
+                                           show.legend = FALSE,
+                                           ...) } +
     {if(!is.null(h_shapes)) ggplot2::geom_path(mapping = ggplot2::aes(x = x,
-                                                                         y = y,
-                                                                         group = id),
-                                                  data = highlighted_shapes,
-                                                  colour = h_col,
-                                                  #alpha = 0.5,
-                                                  size = 1) } +
-    ggplot2::scale_fill_manual(values = g_col) +
+                                                                      y = y,
+                                                                      group = id),
+                                               data = highlighted_shapes,
+                                               colour = h_col,
+                                               #alpha = 0.5,
+                                               size = 1) } +
+    {if(geom == "polygon") ggplot2::scale_fill_manual(values = g_col) } +
+    {if(geom == "path") ggplot2::scale_colour_manual(values = g_col) } +
     ggplot2::coord_equal() +
     ggplot2::theme_void() +
     ggplot2::theme(plot.background = ggplot2::element_rect(fill = bg_col,
