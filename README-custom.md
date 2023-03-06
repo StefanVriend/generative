@@ -9,10 +9,19 @@ art
 </span>
 
 <span style="font-family:JetBrains Mono;">
-<i>day 0</i>
+<i>canvas 0</i>
 
 ![](img/2022-07-29/pent1b.png)
 
 ![](img/2022-07-29/hex1.png)
+
+</span>
+
+<span style="font-family:JetBrains Mono;">
+<i>canvas 1</i>
+
+![](img/2023-03-06/step2.png)
+
+![](img/2023-03-06/step3.png)
 
 </span>

@@ -80,6 +80,88 @@ create_geometry_grid <- function(geometries,
 
 }
 
+#' Make grid of circular arcs
+#'
+#' Function to make a grid of semi-circles, full circles, and circular arcs of various size
+#'
+#' @param dimensions Vector of dimensions of the grid in number of geometries per side. For example, `c(4, 4)` will create a 4x4 grid.
+#' @param seed Set seed to random number generator. Default: NULL.
+#'
+#' @return A data frame with circle grid coordinates
+#'
+#' @examples {
+#'
+#' cgrid <- create_circle_grid(c(9, 9))
+#'
+#' }
+#'
+
+create_circle_grid <- function(dimensions,
+                               seed = NULL) {
+
+  # Set seed
+  if(!is.null(seed)) {
+
+    set.seed(seed)
+
+  }
+
+  # Create circles and circular arcs
+  circles <- purrr::map_dfr(.x = 1:(dimensions[1] * dimensions[2]),
+                            .f = ~{
+
+                              # Sample start point
+                              start_point <- sample(x = seq(from = 0,
+                                                            to = 2 * pi,
+                                                            length.out = 1000),
+                                                    size = 1)
+
+                              # Sample arc length
+                              arc_length <- sample(x = c((1/3), (1/2), (2/3), 1),
+                                                   size = 1) * 2 * pi
+
+                              # Calculate end point
+                              end_point <- start_point + arc_length
+
+                              # Determine 200 coordinates along arc
+                              tibble::tibble(
+                                id = as.character(.x),
+                                rad = seq(start_point, end_point, length.out = 200),
+                                x = 0.5 + 0.48 * cos(rad),
+                                y = 0.5 + 0.48 * sin(rad)
+                              ) %>%
+                                # Add centre point and start point to complete the circular arc
+                                dplyr::add_row(id = as.character(.x),
+                                               rad = NA_real_,
+                                               x = c(0.5, 0.5 + 0.48 * cos(start_point)),
+                                               y = c(0.5, 0.5 + 0.48 * sin(start_point)))
+
+                            })
+
+  # Determine grid positions
+  positions <- matrix(data = 1:(dimensions[1] * dimensions[2]), nrow = dimensions[2], ncol = dimensions[1])
+
+  row_col_positions <- purrr::map_dfr(.x = 1:(dimensions[1] * dimensions[2]),
+                                      .f = ~{
+
+                                        tibble::tibble(
+                                          id = as.character(.x),
+                                          row = which(positions == .x, arr.ind = TRUE)[1],
+                                          col = which(positions == .x, arr.ind = TRUE)[2]
+                                        )
+
+                                      })
+
+  # Convert circle coordinates to fit with their right grid position
+  gridded_circles <- circles %>%
+    dplyr::left_join(row_col_positions, by = "id") %>%
+    dplyr::mutate(x = .data$x + .data$col - 1,
+                  y = .data$y - .data$row - 1)
+
+  return(gridded_circles)
+
+}
+
 #' Plot grid
 #'
 #' Display the gridded geometries
