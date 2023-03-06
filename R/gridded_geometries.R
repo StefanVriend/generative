@@ -87,6 +87,7 @@ create_geometry_grid <- function(geometries,
 #' @param dimensions Vector of dimensions of the grid in number of geometries per side. For example, `c(4, 4)` will create a 4x4 grid.
 #' @param arc_lengths Numeric vector of possible proportional arc lengths. For example `1/3` will generate 1/3rd of a circle.
 #' @param circle_sizes Numeric vector of possible circle sizes (i.e., radius).
+#' @param circle_detail Numeric value indicating the detail of the circle; i.e., the number of points to draw.
 #' @param complete_arc TRUE/FALSE. Complete arc or not? Complete arcs are more suitable when plotting them as filled polygons, whereas incomplete arcs are more suitable when plotting them as open paths.
 #' @param seed Set seed to random number generator. Default: NULL.
 #'
@@ -102,6 +103,7 @@ create_geometry_grid <- function(geometries,
 create_circle_grid <- function(dimensions,
                                arc_lengths = c((1/3), (1/2), (2/3), 1),
                                circle_sizes = 0.48,
+                               circle_detail = 200,
                                complete_arc = TRUE,
                                seed = NULL) {
 
@@ -139,7 +141,9 @@ create_circle_grid <- function(dimensions,
 
                                                circ <- tibble::tibble(
                                                  id = paste(id, .x, sep = "_"),
-                                                 rad = seq(start_point, end_point, length.out = 200),
+                                                 rad = seq(from = start_point,
+                                                           to = end_point,
+                                                           length.out = circle_detail),
                                                  x = 0.5 + .x * cos(rad),
                                                  y = 0.5 + .x * sin(rad)
                                                )
