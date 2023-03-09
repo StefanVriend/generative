@@ -278,3 +278,156 @@ plot_grid <- function(geometries,
 
 }
 
+#' Create and plot path arcs and solid circles
+#'
+#' Function to make and plot a series of differently sized circles and circular arcs that randomly vary in colour, line type, line width and alpha level.
+#'
+#' @param path_arc_number Number of path arcs to draw.
+#' @param path_arc_colours Vector of colours to colour the path arcs.
+#' @param solid_arc_colours Vector of colours to colour the solid circles.
+#' @param background_fill Character string indicating the colour of the plot background.
+#' @param plot_margin Numeric indicating the margin around the circles and arcs.
+#' @param alpha_increment Numeric indicating the transparency increment to be added to the path arcs and solid circles. Solid circles are always more transparent than the paths.
+#' @param h_col Character string indicating the colour of the highlighted geometries.
+#'
+#' @examples {
+#'
+#' # Determine colour palettes
+#' col_set1 <- c("#855a5c", "#618985", "#cc8b86", "#7d4f50", "#2e5266", "#5296a5", "#7b886f")
+#' col_set2 <- c("#e09f3e", "#9e2a2b", "#0892a5", "#81adc8")
+#'
+#' # Draw arcs
+#' draw_arcs(path_arc_number = 19,
+#'           path_arc_colours = col_set1,
+#'           solid_arc_colours = col_set2)
+#'
+#' }
+#'
+
+draw_arcs <- function(path_arc_number = 25,
+                      path_arc_colours,
+                      solid_arc_colours,
+                      background_fill = NA,
+                      plot_margin = 0.1,
+                      alpha_increment = 0) {
+
+  # Create arc paths
+  arcs <- purrr::map_dfr(.x = sample(x = seq(0.45, 0.02, length.out = 100), size = path_arc_number),
+                         .f = ~{
+
+                           # Sample start point
+                           start_point <- sample(x = seq(from = 0,
+                                                         to = 2 * pi,
+                                                         length.out = 1000),
+                                                 size = 1)
+
+                           # Calculate end point
+                           end_point <- start_point + ((3/5) * 2 * pi)
+
+                           # Determine coordinates along arc for each arc
+                           tibble::tibble(
+                             arc_size = .x,
+                             id = as.character(.x),
+                             rad = seq(from = start_point,
+                                       to = end_point,
+                                       length.out = 500),
+                             x = 0.5 + .x * cos(rad),
+                             y = 0.5 + .x * sin(rad)
+
+                           )
+
+                         })
+
+  # Assign colours and line types to arcs
+  arc_cols <- path_arc_colours
+  line_types <- c("solid", "dotted", "dashed", "solid", "dotdash", "longdash", "twodash")
+  line_sizes <- seq(0.5, 2, by = 0.05)
+  line_alphas <- seq(0.6, 1, by = 0.05)
+
+  arcs_df <- dplyr::left_join(arcs,
+                              tibble::tibble(id = unique(arcs$id),
+                                             colour_id = as.character(sample(1:length(arc_cols),
+                                                                             size = length(unique(arcs$id)),
+                                                                             replace = TRUE)),
+                                             line_id = as.character(sample(1:length(line_types),
+                                                                           size = length(unique(arcs$id)),
+                                                                           replace = TRUE)),
+                                             size_id = as.character(sample(1:length(line_sizes),
+                                                                           size = length(unique(arcs$id)),
+                                                                           replace = TRUE)),
+                                             alpha_id = as.character(sample(1:length(line_alphas),
+                                                                            size = length(unique(arcs$id)),
+                                                                            replace = TRUE))),
+                              by = "id")
+
+  # Create solid arcs
+  solid_cols <- sample(solid_arc_colours, 4, replace = FALSE)
+  solid_start <- sample(x = seq(from = 0,
+                                to = 2 * pi,
+                                length.out = 1000),
+                        size = 1)
+
+  solid_arcs <- tibble::tibble(
+    rad = seq(from = 0, to = 2 * pi, length.out = 500),
+    id = "0.52",
+    x = 0.5 + as.numeric(id) * cos(rad),
+    y = 0.5 + as.numeric(id) * sin(rad),
+    fill = "1"
+  ) %>%
+    dplyr::add_row(rad = seq(from = solid_start, to = solid_start + pi, length.out = 500),
+                   id = "0.42",
+                   x = 0.5 + as.numeric(id) * cos(rad),
+                   y = 0.5 + as.numeric(id) * sin(rad),
+                   fill = "2") %>%
+    dplyr::add_row(rad = seq(from = solid_start + pi, to = solid_start + (2 * pi), length.out = 500),
+                   id = "0.34",
+                   x = 0.5 + as.numeric(id) * cos(rad),
+                   y = 0.5 + as.numeric(id) * sin(rad),
+                   fill = "3") %>%
+    dplyr::add_row(rad = seq(from = solid_start, to = solid_start + pi, length.out = 500),
+                   id = "0.26",
+                   x = 0.5 + as.numeric(id) * cos(rad),
+                   y = 0.5 + as.numeric(id) * sin(rad),
+                   fill = "4")
+
+
+  p <- ggplot2::ggplot(data = arcs_df,
+                       mapping = ggplot2::aes(x = x,
+                                              y = y,
+                                              group = id)) +
+    ggplot2::geom_polygon(data = solid_arcs[solid_arcs$fill == "1",],
+                          mapping = ggplot2::aes(x = x,
+                                                 y = y,
+                                                 group = id,
+                                                 fill = fill),
+                          colour = NA,
+                          alpha = 0.1 + alpha_increment,
+                          show.legend = FALSE) +
+    ggplot2::geom_polygon(data = solid_arcs[solid_arcs$fill != "1",],
+                          mapping = ggplot2::aes(x = x,
+                                                 y = y,
+                                                 group = id,
+                                                 fill = fill),
+                          colour = NA,
+                          alpha = 0.35 + alpha_increment,
+                          show.legend = FALSE) +
+    ggplot2::geom_path(mapping = ggplot2::aes(colour = colour_id,
+                                              linetype = line_id,
+                                              linewidth = size_id,
+                                              alpha = alpha_id),
+                       lineend = "round",
+                       show.legend = FALSE) +
+    ggplot2::scale_fill_manual(values = solid_cols) +
+    ggplot2::scale_colour_manual(values = arc_cols) +
+    ggplot2::scale_linetype_manual(values = line_types) +
+    ggplot2::scale_linewidth_manual(values = line_sizes) +
+    ggplot2::scale_alpha_manual(values = line_alphas) +
+    ggplot2::coord_equal(xlim = c(0 - plot_margin, 1 + plot_margin),
+                         ylim = c(0 - plot_margin, 1 + plot_margin)) +
+    ggplot2::theme_void() +
+    ggplot2::theme(plot.background = ggplot2::element_rect(fill = background_fill,
+                                                           colour = NA))
+
+  return(p)
+
+}
