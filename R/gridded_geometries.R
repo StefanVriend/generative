@@ -293,7 +293,8 @@ plot_grid <- function(geometries,
 #' @param background_fill Character string indicating the colour of the plot background.
 #' @param plot_margin Numeric indicating the margin around the arcs.
 #' @param alpha_increment Numeric indicating the transparency increment to be added to the path arcs and solid circles. Solid circles are always more transparent than the paths.
-#' @param h_col Character string indicating the colour of the highlighted geometries.
+#' @param centre_point Character string indicating the colour of the centre point. If NULL (default), no centre point is drawn.
+#' @param seed Numeric indicating the seed to the random number generator.
 #'
 #' @examples {
 #'
@@ -319,7 +320,16 @@ draw_arcs <- function(path_arc_number = 25,
                       solid_arc_half_size = 0.42,
                       background_fill = NA,
                       plot_margin = 0.1,
-                      alpha_increment = 0) {
+                      alpha_increment = 0,
+                      centre_point = FALSE,
+                      seed = NULL) {
+
+  # Set seed
+  if(!is.null(seed)) {
+
+    set.seed(seed)
+
+  }
 
   # Create arc paths
   arcs <- purrr::map_dfr(.x = sample(x = seq(from = path_arc_max_size,
@@ -468,6 +478,13 @@ draw_arcs <- function(path_arc_number = 25,
                                               alpha = alpha_id),
                        lineend = "round",
                        show.legend = FALSE) +
+    {if(!is.null(centre_point)) ggplot2::annotate(geom = "point",
+                                                  x = 0.5,
+                                                  y = 0.5,
+                                                  stroke = NA,
+                                                  colour = centre_point,
+                                                  size = 4,
+                                                  alpha = 0.35 + alpha_increment) } +
     ggplot2::scale_fill_manual(values = solid_arcs$cols) +
     ggplot2::scale_colour_manual(values = arc_cols) +
     ggplot2::scale_linetype_manual(values = line_types) +
