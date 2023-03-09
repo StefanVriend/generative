@@ -3,5 +3,5 @@
 .RData
 .Ruserdata
 /canvas
-README.html
+*.html
 README-custom.md
