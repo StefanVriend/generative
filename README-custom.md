@@ -27,3 +27,12 @@ art
 ![](img/2023-03-06/circle1.png)
 
 </span>
+
+<span style="font-family:JetBrains Mono;">
+<i>canvas 2</i>
+
+![](img/2023-03-09/arc1.svg)
+
+![](img/2023-03-09/arc4.svg)
+
+</span>

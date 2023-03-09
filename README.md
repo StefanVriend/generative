@@ -19,3 +19,9 @@ art
 <img src="img/2023-03-06/step3.png" width = "600" />
 
 <img src="img/2023-03-06/circle1.png" width = "600" />
+
+*canvas 2*
+
+<img src="img/2023-03-09/arc1.svg" width = "600" />
+
+<img src="img/2023-03-09/arc4.svg" width = "600" />

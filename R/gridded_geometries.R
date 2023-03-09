@@ -135,7 +135,7 @@ create_circle_grid <- function(dimensions,
                               # Set id
                               id <- as.character(.x)
 
-                              # Determine 200 coordinates along arc for each circle size
+                              # Determine coordinates along arc for each circle size
                               purrr::map_dfr(.x = circle_sizes,
                                              .f = ~{
 
@@ -237,13 +237,6 @@ plot_grid <- function(geometries,
 
       highlighted_shapes <- highlighted_shapes %>%
         dplyr::group_by(.data$id) %>%
-        # dplyr::mutate(dplyr::across(.cols = c("x", "y"),
-        #                             .fns = ~{
-        #
-        #                               dplyr::case_when(.x == min(.x) ~ .x + 0.2,
-        #                                                .x == max(.x) ~ .x - (.data$s * 0.1))
-        #
-        #                             })) %>%
         dplyr::mutate(rads = (-runif(1, -20, 20))*pi/180, # rotation in radians
                       x_or = (max(.data$x) + min(.data$x)) / 2, # original centre x
                       y_or = (max(.data$y) + min(.data$y)) / 2, # original centre y
@@ -265,6 +258,7 @@ plot_grid <- function(geometries,
                                                  ...) } +
     {if(geom == "path") ggplot2::geom_path(mapping = ggplot2::aes(colour = colour_id),
                                            show.legend = FALSE,
+                                           lineend = "round",
                                            ...) } +
     {if(!is.null(h_shapes)) ggplot2::geom_path(mapping = ggplot2::aes(x = x,
                                                                       y = y,
@@ -283,3 +277,4 @@ plot_grid <- function(geometries,
   return(p)
 
 }
+
