@@ -278,15 +278,20 @@ plot_grid <- function(geometries,
 
 }
 
-#' Create and plot path arcs and solid circles
+#' Create and plot path and solid arcs
 #'
-#' Function to make and plot a series of differently sized circles and circular arcs that randomly vary in colour, line type, line width and alpha level.
+#' Function to make and plot a series of differently sized circular arcs that randomly vary in colour, line type, line width and alpha level.
 #'
 #' @param path_arc_number Number of path arcs to draw.
+#' @param solid_arc_number Number of solid arcs to draw.
 #' @param path_arc_colours Vector of colours to colour the path arcs.
-#' @param solid_arc_colours Vector of colours to colour the solid circles.
+#' @param solid_arc_colours Vector of colours to colour the solid arcs.
+#' @param path_arc_min_size Numeric indicating the minimum radius of the path arcs.
+#' @param path_arc_max_size Numeric indicating the maximum radius of the path arcs.
+#' @param solid_arc_full_size Numeric indicating the radius of the full solid arc.
+#' @param solid_arc_half_size Numeric indicating the radius of the first half solid arc.
 #' @param background_fill Character string indicating the colour of the plot background.
-#' @param plot_margin Numeric indicating the margin around the circles and arcs.
+#' @param plot_margin Numeric indicating the margin around the arcs.
 #' @param alpha_increment Numeric indicating the transparency increment to be added to the path arcs and solid circles. Solid circles are always more transparent than the paths.
 #' @param h_col Character string indicating the colour of the highlighted geometries.
 #'
@@ -305,14 +310,21 @@ plot_grid <- function(geometries,
 #'
 
 draw_arcs <- function(path_arc_number = 25,
+                      solid_arc_number = 4,
                       path_arc_colours,
                       solid_arc_colours,
+                      path_arc_min_size = 0.02,
+                      path_arc_max_size = 0.45,
+                      solid_arc_full_size = 0.52,
+                      solid_arc_half_size = 0.42,
                       background_fill = NA,
                       plot_margin = 0.1,
                       alpha_increment = 0) {
 
   # Create arc paths
-  arcs <- purrr::map_dfr(.x = sample(x = seq(0.45, 0.02, length.out = 100), size = path_arc_number),
+  arcs <- purrr::map_dfr(.x = sample(x = seq(from = path_arc_max_size,
+                                             to = path_arc_min_size,
+                                             length.out = 100), size = path_arc_number),
                          .f = ~{
 
                            # Sample start point
@@ -361,41 +373,80 @@ draw_arcs <- function(path_arc_number = 25,
                               by = "id")
 
   # Create solid arcs
-  solid_cols <- sample(solid_arc_colours, 4, replace = FALSE)
-  solid_start <- sample(x = seq(from = 0,
-                                to = 2 * pi,
-                                length.out = 1000),
-                        size = 1)
+  create_solid_arcs <- function(n = solid_arc_number,
+                                full_size = solid_arc_full_size,
+                                half_size = solid_arc_half_size) {
 
-  solid_arcs <- tibble::tibble(
-    rad = seq(from = 0, to = 2 * pi, length.out = 500),
-    id = "0.52",
-    x = 0.5 + as.numeric(id) * cos(rad),
-    y = 0.5 + as.numeric(id) * sin(rad),
-    fill = "1"
-  ) %>%
-    dplyr::add_row(rad = seq(from = solid_start, to = solid_start + pi, length.out = 500),
-                   id = "0.42",
-                   x = 0.5 + as.numeric(id) * cos(rad),
-                   y = 0.5 + as.numeric(id) * sin(rad),
-                   fill = "2") %>%
-    dplyr::add_row(rad = seq(from = solid_start + pi, to = solid_start + (2 * pi), length.out = 500),
-                   id = "0.34",
-                   x = 0.5 + as.numeric(id) * cos(rad),
-                   y = 0.5 + as.numeric(id) * sin(rad),
-                   fill = "3") %>%
-    dplyr::add_row(rad = seq(from = solid_start, to = solid_start + pi, length.out = 500),
-                   id = "0.26",
-                   x = 0.5 + as.numeric(id) * cos(rad),
-                   y = 0.5 + as.numeric(id) * sin(rad),
-                   fill = "4")
+    # Select half arc start
+    solid_start <- sample(x = seq(from = 0,
+                                  to = 2 * pi,
+                                  length.out = 1000),
+                          size = 1)
 
+    # Select colours
+    solid_cols <- sample(solid_arc_colours, n, replace = FALSE)
+
+    # Determine half arc radiuses
+    half_arc_sizes <- seq(from = half_size,
+                          to = 0.01,
+                          by = -.08)[1:(n-1)]
+
+    # Draw full arc
+    solid_full_arc <- tibble::tibble(
+      rad = seq(from = 0, to = 2 * pi, length.out = 500),
+      id = as.character(full_size),
+      x = 0.5 + full_size * cos(rad),
+      y = 0.5 + full_size * sin(rad),
+      fill = "1"
+    )
+
+    # Draw half arcs
+    solid_half_arcs <- purrr::map_dfr(.x = 2:n,
+                                      .f = ~{
+
+                                        if(.x %% 2 == 0) {
+
+                                          tibble::tibble(
+                                            rad = seq(from = solid_start,
+                                                      to = solid_start + pi,
+                                                      length.out = 500),
+                                            id = as.character(half_arc_sizes[.x - 1]),
+                                            x = 0.5 + half_arc_sizes[.x - 1] * cos(rad),
+                                            y = 0.5 + half_arc_sizes[.x - 1] * sin(rad),
+                                            fill = as.character(.x)
+                                          )
+
+                                        } else {
+
+                                          tibble::tibble(
+                                            rad = seq(from = solid_start + pi,
+                                                      to = solid_start + (2 * pi),
+                                                      length.out = 500),
+                                            id = as.character(half_arc_sizes[.x - 1]),
+                                            x = 0.5 + half_arc_sizes[.x - 1] * cos(rad),
+                                            y = 0.5 + half_arc_sizes[.x - 1] * sin(rad),
+                                            fill = as.character(.x)
+                                          )
+
+                                        }
+
+                                      })
+
+    return(list(arcs = dplyr::bind_rows(solid_full_arc,
+                                        solid_half_arcs),
+                cols = solid_cols))
+
+  }
+
+  solid_arcs <- create_solid_arcs(n = solid_arc_number,
+                                  full_size = solid_arc_full_size,
+                                  half_size = solid_arc_half_size)
 
   p <- ggplot2::ggplot(data = arcs_df,
                        mapping = ggplot2::aes(x = x,
                                               y = y,
                                               group = id)) +
-    ggplot2::geom_polygon(data = solid_arcs[solid_arcs$fill == "1",],
+    ggplot2::geom_polygon(data = solid_arcs$arcs[solid_arcs$arcs$fill == "1",],
                           mapping = ggplot2::aes(x = x,
                                                  y = y,
                                                  group = id,
@@ -403,7 +454,7 @@ draw_arcs <- function(path_arc_number = 25,
                           colour = NA,
                           alpha = 0.1 + alpha_increment,
                           show.legend = FALSE) +
-    ggplot2::geom_polygon(data = solid_arcs[solid_arcs$fill != "1",],
+    ggplot2::geom_polygon(data = solid_arcs$arcs[solid_arcs$arcs$fill != "1",],
                           mapping = ggplot2::aes(x = x,
                                                  y = y,
                                                  group = id,
@@ -417,7 +468,7 @@ draw_arcs <- function(path_arc_number = 25,
                                               alpha = alpha_id),
                        lineend = "round",
                        show.legend = FALSE) +
-    ggplot2::scale_fill_manual(values = solid_cols) +
+    ggplot2::scale_fill_manual(values = solid_arcs$cols) +
     ggplot2::scale_colour_manual(values = arc_cols) +
     ggplot2::scale_linetype_manual(values = line_types) +
     ggplot2::scale_linewidth_manual(values = line_sizes) +
