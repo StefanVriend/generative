@@ -321,7 +321,7 @@ draw_arcs <- function(path_arc_number = 25,
                       background_fill = NA,
                       plot_margin = 0.1,
                       alpha_increment = 0,
-                      centre_point = FALSE,
+                      centre_point = NULL,
                       seed = NULL) {
 
   # Set seed
